@@ -1,0 +1,307 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/app-layout/app-drawer/app-drawer.html">
+<link rel="import" href="../bower_components/app-layout/app-drawer-layout/app-drawer-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-header/app-header.html">
+<link rel="import" href="../bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-scroll-effects/app-scroll-effects.html">
+<link rel="import" href="../bower_components/app-layout/app-toolbar/app-toolbar.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/iron-selector/iron-selector.html">
+
+<link rel="import" href="../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../bower_components/iron-input/iron-input.html">
+<link rel="import" href="../bower_components/iron-form-element-behavior/iron-form-element-behavior.html">
+
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<!--<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">-->
+<link rel="import" href="../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../bower_components/paper-tabs/paper-tabs.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
+
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../bower_components/app-storage/app-localstorage/app-localstorage-document.html">
+<link rel="import" href="../bower_components/iron-media-query/iron-media-query.html">
+
+<link rel="import" href="cafe-main.html">
+<!-- <link rel="import" href="cafe-icon.html"> -->
+
+<link rel="import" href="cafe-login.html">
+
+<dom-module id="cafe-dashboard">
+  <template>
+    <custom-style>
+      <style is="custom-style" include="iron-flex iron-flex-alignment">
+        body {
+          margin: 0;
+          font-family: "Open Sans", sans-serif;
+          background-color: white;
+        }
+        app-header {
+          background-color: #303030;
+          color: lightgray;
+        }
+
+        app-header paper-icon-button {
+          --paper-icon-button-ink-color: #fff;
+        }
+        app-drawer-layout {
+          --app-drawer-layout-content-transition: margin 0.2s;
+        }
+        app-drawer {
+          --app-drawer-content-container: {
+            background-color: #303030;
+          };
+          --paper-fab-background: #4285f4;
+        }
+
+        .logo-box {
+          width: 170px;
+          height: 70px;
+          display: block;
+          margin: 0 auto;
+          margin-top: 20px;
+        }
+
+        paper-fab{
+          border-radius:5px;
+          margin: auto;
+        }
+
+        .drawer-list {
+          margin-left: 10px;
+          margin-top: 80px;
+          height: calc(100% - 80px);
+          overflow: auto;
+          display:flex;
+          flex-wrap: wrap;
+          justify-content: flex-start;
+        }
+
+        .drawer-list a{
+          font-size:12px;
+          color:lightgray;
+          text-decoration: none;
+          padding:3px;
+          /*text-align:center;*/
+        }
+
+        paper-tab[link] a {
+          /* These mixins (from iron-flex-layout) center the link text. */
+
+          @apply(--layout-horizontal);
+          @apply(--layout-center-center);
+          text-decoration: none;
+          color: #fff;
+          text-transform: uppercase;
+          margin-bottom: 1px;
+          padding-right: 20px;
+
+        }
+        app-toolbar{
+          @apply(--layout-horizontal);
+          --paper-fab-background: #4285f4;
+          /*@apply(--layout-justified);*/
+        }
+
+        .paperTabs{
+          @apply(--layout-flex);
+
+        }
+
+        .iron-selected paper-fab{
+          border: 1px solid var(--paper-tab-ink, var(--paper-yellow-a100));
+          box-shadow: 3px -3px var(--paper-tab-ink, var(--paper-yellow-a100));
+          -moz-box-shadow: 3px -3px var(--paper-tab-ink, var(--paper-yellow-a100));
+          -webkit-box-shadow: 3px -3px var(--paper-tab-ink, var(--paper-yellow-a100));
+          -o-box-shadow: 3px -3px var(--paper-tab-ink, var(--paper-yellow-a100));
+          border-radius:5px;
+        }
+        a:focus{
+          outline:none;
+        }
+
+        .drawer-contents::after {
+          content: "";
+          position: absolute;
+          width: 100%;
+          border-bottom: 1px solid orange;
+        }
+
+      </style>
+    </custom-style>
+
+    <app-route
+            route="{{route}}"
+            pattern="/:page"
+            data="{{routeData}}"
+            tail="{{routeTail}}"></app-route>
+
+    <iron-media-query query="max-width: 767px" query-matches="{{smallScreen}}"></iron-media-query>
+
+    <app-localstorage-document key="user" data="{{userData}}" storage="window.localStorage"></app-localstorage-document>
+
+
+    <paper-toast id="toastMessage" class="fit-bottom" duration="5000"></paper-toast>
+
+    <app-drawer-layout id="drawerLayout">
+      <app-drawer slot="drawer">
+        <div>
+          <img src="../images/logo.png" class="logo-box"></img>
+        </div>
+        
+        <iron-selector selected="[[routeData.page]]" attr-for-selected="name" class="drawer-list" role="navigation">
+          <a name=""   href="/main">Main</a>
+        </iron-selector>
+      </app-drawer>
+      <app-header-layout>
+        <app-header slot="header">
+          <app-toolbar>
+            <paper-icon-button icon="menu" drawer-toggle></paper-icon-button>
+            <div main-title>wxcafe</div>
+          </app-toolbar>
+        </app-header>
+
+        <iron-pages
+            selected="[[routeData.page]]"
+            attr-for-selected="name"
+            fallback-selection="view404"
+            selected-attribute="visible"
+            role="main">
+          <cafe-main name=""></cafe-main>
+          <cafe-view404 name="view404"></cafe-view404>
+
+        </iron-pages>
+
+      </app-header-layout>
+    </app-drawer-layout>
+    
+  </template>
+
+  <script>
+
+
+      class CafeDashboard extends Polymer.Element {
+
+
+          static get is() { return 'cafe-dashboard'; }
+
+          static get properties() {
+              return {
+                  //pages: {value:'home',type:String, reflectToAttribute: true,},
+                  page: {
+                      type: String,
+                      reflectToAttribute: true,
+                      observer: '_pageChanged',
+                  },
+                  routeData: Object,
+                  routeTail: String,
+                /*tokenData: {
+                 type: Array,
+                 value: () => [],
+                 notify: true
+                 },*/
+                  userData: {
+                      type: Array,
+                      value: () => [],
+                      notify: true
+                  }
+              };
+          }
+
+          static get observers() {
+              return [
+                  '_routePageChanged(routeData.page)',
+              ];
+          }
+
+          _routePageChanged(page) {
+
+              if (page === undefined || page === "") {
+                  return;
+              }
+              console.log(page);
+              // If no page was found in the route data, page will be an empty string.
+              // Deault to 'main' in that case.
+              this.page = page || 'main';
+          }
+
+          _pageChanged(page, oldPage) {
+              if (page === undefined || page === "") {
+                  return;
+              }
+              // Load page import on demand. Show 404 page if fails
+              this._ensureLazyLoaded();
+              var resolvedPageUrl = this.resolveUrl('cafe-'+ page + '.html');
+
+              Polymer.importHref( resolvedPageUrl, null, this._showPage404.bind(this), true);
+
+              document.title = 'CAFE '+page.toUpperCase();
+          }
+
+          _ensureLazyLoaded() {
+              // load lazy resources after render and set `loadComplete` when done.
+              if (!this.loadComplete) {
+                  Polymer.RenderStatus.afterNextRender(this, () => {
+                      Polymer.importHref(this.resolveUrl('lazy-resources.html'), () => {
+                          // Register service worker if supported.
+                          if ('serviceWorker' in navigator) {
+                              navigator.serviceWorker.register('service-worker.js', {scope: '/'});
+                          }
+                          //this._notifyNetworkStatus();
+                          this.loadComplete = true;
+                      });
+                  });
+              }
+          }
+
+          _showPage404() {
+              this.page = 'view404';
+          }
+
+          _toggleDrawer() {
+              var drawerLayout = this.$.drawerLayout;
+              drawerLayout.drawer.toggle();
+          }
+
+
+          ready(){
+              super.ready();
+
+              this.addEventListener('change-view', e => this._onChangeView(e));
+              this.addEventListener('lazy-load-page', e => this._onLazyLoadPage(e));
+
+          }
+
+          _onLazyLoadPage(event){
+              var resolvedPageUrl = this.resolveUrl(event.detail.name+'/cafe-'+event.detail.name+'-list-data.html');
+              //console.log(resolvedPageUrl);
+              Polymer.importHref(resolvedPageUrl, null, null, true);
+          }
+
+          _onChangeView(event){
+
+              var detail = event.detail;
+              var resolvedPageUrl = this.resolveUrl(detail.name+'/cafe-'+ detail.name+'-'+detail.view + '.html');
+              //var resolvedPageUrl = this.resolveUrl(detail.name+'/mai-'+ detail.view + '.html');
+              //console.log(resolvedPageUrl);
+              Polymer.importHref(resolvedPageUrl, null, null, true);
+              document.title = 'CAFE '+ detail.name+' '+detail.view;
+          }
+
+          _logout() {
+              this.dispatchEvent(new CustomEvent('log-out', {
+                  bubbles: true,
+                  composed: true
+              }));
+          }
+      }
+
+      window.customElements.define(CafeDashboard.is, CafeDashboard);
+
+
+  </script>
+</dom-module>

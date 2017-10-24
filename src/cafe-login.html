@@ -1,0 +1,125 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+
+<link rel="import" href="../bower_components/iron-input/iron-input.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/iron-a11y-keys/iron-a11y-keys.html">
+
+<link rel="import" href="styles/cafe-shared-styles.html">
+<!--<link rel="import" href="../bower_components/iron-localstorage/iron-localstorage.html">-->
+<!--<link rel="import" href="cafe-user-data.html">-->
+<link rel="import" href="../bower_components/app-storage/app-localstorage/app-localstorage-document.html">
+<dom-module id="cafe-login">
+    <template>
+        <custom-style>
+            <style is="custom-style" include="iron-flex iron-flex-alignment">
+
+                :host {
+                    background: #33383a;
+                    min-height: 400px;
+                }
+
+                .login paper-input {
+                    width: 100%;
+                    --paper-input-container-input-color: var(--text-primary-color);
+                    --paper-input-container-underline: {
+                      background: rgba(255, 255, 255, 0.2);
+                    }
+                }
+
+                #login-button {
+                    margin: 20px 0 0 0;
+                    padding-left: 30px;
+                    padding-right: 30px;
+                    background: var(--primary-color);
+                    color: var(--text-primary-color);
+                }
+
+                .error-message {
+                    color: red;
+                }
+
+                .header {
+                    height: 36%;
+                    display: flex;
+                    flex-direction: column;
+                    flex: 1;
+                    justify-content: flex-end;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+
+                .header::after {
+                    content: "";
+                    position: absolute;
+                    width: 100%;
+                    top: 36%;
+                    border-bottom: 2px solid var(--accent-color);
+                }
+
+                .header h1 {
+                    color: var(--text-primary-color);
+                    font-size: 24px;
+                    font-weight: 300;
+                    margin: 0 auto 16px;
+                    width: 300px;
+                }
+
+                .login {
+                    width: 300px;
+                    margin: 16px auto;
+                }
+            </style>
+        </custom-style>
+
+        <iron-a11y-keys keys="enter" on-keys-pressed="_logIn"></iron-a11y-keys>
+
+        <div id="header" class="header">
+          <h1>WellnessXperts NC Smart Hub</h1>
+        </div>
+        <!-- <div id="loginContainer"> -->
+        <div class="login">
+            <dom-if  if="[[error]]">
+            <template>
+                <p class="error-message"><strong>Error:</strong> [[error]]</p>
+            </template>
+            </dom-if>
+            <paper-input label="USERNAME" id="username" type="text" required auto-validate error-message="Username missing" value="{{userFormData.username}}"></paper-input>
+            <paper-input invalid="{{invalid}}" label="PASSWORD" id="password" type="password" required auto-validate error-message="Password missing" value="{{userFormData.password}}"></paper-input>
+            <br>
+            <paper-button id="login-button" disabled$="{{invalid}}" raised on-tap="_logIn">Log In</paper-button>
+        </div>
+
+    </template>
+    <script>
+        class CafeLogin extends Polymer.Element {
+            static get is() { return 'cafe-login'; }
+
+            static get properties() {
+                return {
+                    userFormData: {type: Object,value:{}, notify:true},
+                    userData: {type: Array, notify: true},
+                    fmTokenData: {
+                        type: Array,
+                        value: () => [],
+                        notify: true
+                    },
+                    error: {type: String, notify: true}
+                };
+            }
+
+            _logIn(){
+                this.dispatchEvent(new CustomEvent('log-in', {
+                    bubbles: true,
+                    composed: true
+                }));
+            }
+        }
+
+
+        window.customElements.define(CafeLogin.is, CafeLogin);
+    </script>
+</dom-module>

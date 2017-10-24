@@ -1,0 +1,202 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/iron-selector/iron-selector.html">
+
+<link rel="import" href="../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../bower_components/iron-input/iron-input.html">
+<link rel="import" href="../bower_components/iron-form-element-behavior/iron-form-element-behavior.html">
+
+<link rel="import" href="../bower_components/lazy-imports/lazy-imports-mixin.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../bower_components/app-storage/app-localstorage/app-localstorage-document.html">
+
+<link rel="import" href="cafe-dashboard.html">
+
+<link rel="import" href="cafe-login.html">
+
+<dom-module id="cafe-app">
+  <link rel="lazy-import" group="dashboard" href="cafe-cashboard.html">
+  <template>
+
+    <app-location route="{{route}}"></app-location>
+
+    <app-route
+            route="{{route}}"
+            pattern="/:page"
+            data="{{routeData}}"
+            tail="{{routeTail}}"></app-route>
+
+    <app-localstorage-document key="user" data="{{userData}}" storage="window.localStorage"></app-localstorage-document>
+    <iron-ajax id="login" handle-as="json" on-response="_handleBackendResponse" on-error="_handleBackendError"></iron-ajax>
+    <iron-localstorage name="cafe-db-id" value="{{_dbId}}"></iron-localstorage>
+    <iron-localstorage name="cafe-db-remote" value="{{_dbRemote}}"></iron-localstorage>
+    <iron-localstorage name="cafe-autologin" value="{{_autoLogin}}"></iron-localstorage>
+
+    <iron-pages
+            selected="[[_selected]]"
+            attr-for-selected="pagename"
+            selected-attribute="active"
+            role="main">
+      <cafe-login pagename="login" error="{{error}}" user-form-data ="{{userFormData}}" on-log-in="_logIn"></cafe-login>
+      <cafe-dashboard pagename="" on-log-out="_logOut" page="{{routeData.page}}" route-data="{{routeData}}" route="{{route}}"></cafe-dashboard>
+
+    </iron-pages>
+    <paper-toast id="networkStatus"></paper-toast>
+  </template>
+  </dom-if>
+
+  </template>
+
+  <script>
+
+
+      class CafeApp extends Polymer.Element {
+
+
+          static get is() { return 'cafe-app'; }
+
+          static get properties() {
+              return {
+
+                  userData: {
+                      type: Array,
+                      value: () => [],
+                      notify: true
+                  }
+
+              };
+          }
+
+          static get observers() {
+              return ['_onLoginChanged(_loggedIn)'];
+          };
+
+          ready() {
+            super.ready();
+            this.baseHref = document.querySelector('base').getAttribute('href');
+            Polymer.RenderStatus.afterNextRender(this, () => {
+              window.addEventListener('online', this._networkStatusMessage.bind(this));
+              window.addEventListener('offline', this._networkStatusMessage.bind(this));
+              this._setupDB();
+            });
+          }
+
+          _onLoginChanged(login) {
+
+              Polymer.RenderStatus.afterNextRender(this, () => {
+
+                  if (!login) {
+                      this._selected = 'login';
+                      this.set('route.path','login');
+                  }
+                  else{
+                      this._selected = '';
+                      if(this.route.path==="/login"){
+                          this.set('route.path', '');
+                          this.notifyPath('route.path');
+                          return;
+                      }
+                      this.set('route.path', this.route.path);
+                  }
+
+                  this.notifyPath('');
+              });
+
+          }
+
+          _logOut() {
+            this.routeData.id = null;
+            this._autoLogin = this._loggedIn = false;
+            this._dbSetupComplete = false;
+          }
+
+          _logIn() {
+
+            this._autoLogin = true;
+            // setup sets the _loggedIn flag appropriatelly
+            this._setupDB();
+            
+          }
+
+          _setupDB() {
+            if (this._dbSetupComplete === true) {
+              return;
+            }
+
+            var id = this.routeData.id;
+            if (!id && !this._autoLogin) {
+              this._loggedIn = false;
+              return;
+            }
+            if (id && this._dbLocal && this._dbId !== id) {
+              // User wants to change their ddbb because URL changed
+              this._dbId = this._dbLocal = this._dbRemote
+            } else if (!id && this._dbId) {
+              // Re-use the saved ddbb
+              id = this._dbId;
+            }
+            if (id) {
+              // Check that ddbb still exists in the server
+              this.$.ajax.url = 'https://expense-manager.demo.vaadin.com/api/db/' + id;
+              console.log('id========>'+id);
+            } else {
+              // Create a new ddbb in server with new demo data
+              this.$.ajax.url = 'https://expense-manager.demo.vaadin.com/api/create';
+            }
+
+            this._dbSetupComplete = true;
+            this.$.ajax.generateRequest();
+          }
+
+          _handleBackendResponse(evt) {
+            var rsp = evt.detail.response;
+            if (rsp && rsp.backend_db_id) {
+              // ddbb in server is correct
+              this._dbId = rsp.backend_db_id;
+              this._dbLocal = 'db_' + this._dbId;
+              this.set('route.path', this.baseHref + this._dbId);
+              this._dbRemote = rsp.couchdb_db_url;
+              this._loggedIn = true;
+              // ddbb was just created
+              this._showInfo = rsp.new_db;
+            } else {
+              // ddbb does not exist anymore
+              this._dbId = null;
+              this._setupDB();
+            }
+          }
+
+          _handleBackendError(e, d) {
+            if (this._dbId && this._dbRemote) {
+              // We can work offline and have a local instance of the ddbb.
+              this._dbLocal = 'db_' + this._dbId;
+              this._loggedIn = true;
+            } else {
+              // Network failure and we dont have local any ddbb yet to work offline
+              this._dbId = null;
+              this._networkStatusMessage(null, 'Experiencing some issues, try again in a bit.');
+              this.$.networkStatus.opened = true;
+            }
+          }
+
+          // Show a toast with network status. We migh have a paper-badge for this.
+          _networkStatusMessage(e, text) {
+            text = text ? text : navigator.onLine ? 'online' : 'offline';
+            this.$.networkStatus.opened = false;
+            this.$.networkStatus.text = 'Network is ' + text;
+            this.$.networkStatus.opened = true;
+          }
+
+          _showPage404() {
+              this.page = 'view404';
+          }
+
+      }
+
+      window.customElements.define(CafeApp.is, CafeApp);
+
+
+  </script>
+</dom-module>
