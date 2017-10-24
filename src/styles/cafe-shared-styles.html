@@ -5,7 +5,60 @@
 <dom-module id="cafe-shared-styles">
   <template>
     <style>
-      
+      :host {
+        display: block;
+      }
+
+      #pages,
+      #pages>* {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+      }
+
+       :host>* {
+        --dark-primary-color: #33383a;
+        --primary-color: #00b4f0;
+        --light-primary-color: #F2FAF9;
+        --text-primary-color: #FFFFFF;
+        --accent-color: #ff3a39;
+        --light-accent-color: #F2FAF9;
+        --primary-text-color: rgba(0, 0, 0, 0.87);
+        --secondary-text-color: #727272;
+        --primary-background-color: #FFFFFF;
+        --disabled-text-color: #BDBDBD;
+        --divider-color: #B6B6B6;
+        --paper-menu-background-color: #fff;
+        --menu-link-color: #111111;
+        --paper-input-container-underline: {
+          background: #dbdbdb;
+        }
+        --paper-header-panel-shadow: {
+          display: none;
+        }
+        --paper-header-panel-standard-container: {
+          overflow: visible;
+        }
+        --section-title: {
+          font-weight: 400;
+          font-size: 13px;
+          display: block;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.13);
+          padding-bottom: 6px;
+          margin-bottom: 18px;
+          margin-top: 4px;
+          color: rgba(0, 0, 0, 0.54);
+        }
+        iron-overlay-backdrop {
+          --iron-overlay-backdrop-background-color: #33383A;
+        }
+
+        --paper-input-container-underline: {
+          border-color: rgba(0, 0, 0, 0.2);
+        }
+      }
       app-toolbar {
         background-color: #4285f4;
         color: #fff;
@@ -27,19 +80,6 @@
       .view-toolbar .iron-selected{
         color: white;
       }
-
-      /*.view-toolbar paper-fab{
-        border-radius:5px;
-      }*/
-
-      /*.view-toolbar .iron-selected paper-fab{
-        border: 1px solid var(--paper-tab-ink, var(--paper-yellow-a100));
-        box-shadow: 3px -3px var(--paper-tab-ink, var(--paper-yellow-a100));
-        -moz-box-shadow: 3px -3px var(--paper-tab-ink, var(--paper-yellow-a100));
-        -webkit-box-shadow: 3px -3px var(--paper-tab-ink, var(--paper-yellow-a100));
-        -o-box-shadow: 3px -3px var(--paper-tab-ink, var(--paper-yellow-a100));
-        border-radius:5px;
-      }*/
 
       .view-toolbar paper-fab[mini]{
         color: #4285f4;
