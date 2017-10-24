@@ -28,11 +28,14 @@
             data="{{routeData}}"
             tail="{{routeTail}}"></app-route>
 
-    <app-localstorage-document key="user" data="{{userData}}" storage="window.localStorage"></app-localstorage-document>
-    <iron-ajax id="login" handle-as="json" on-response="_handleBackendResponse" on-error="_handleBackendError"></iron-ajax>
-    <iron-localstorage name="cafe-db-id" value="{{_dbId}}"></iron-localstorage>
-    <iron-localstorage name="cafe-db-remote" value="{{_dbRemote}}"></iron-localstorage>
-    <iron-localstorage name="cafe-autologin" value="{{_autoLogin}}"></iron-localstorage>
+    <iron-ajax
+            id="login"
+            method="post"
+            content-type="application/json"
+            handle-as="text"
+            handle-as="json"
+            on-response="_handleUserResponse"
+    ></iron-ajax>
 
     <iron-pages
             selected="[[_selected]]"
@@ -41,148 +44,159 @@
             role="main">
       <cafe-login pagename="login" error="{{error}}" user-form-data ="{{userFormData}}" on-log-in="_logIn"></cafe-login>
       <cafe-dashboard pagename="" on-log-out="_logOut" page="{{routeData.page}}" route-data="{{routeData}}" route="{{route}}"></cafe-dashboard>
-
     </iron-pages>
     <paper-toast id="networkStatus"></paper-toast>
-  </template>
-  </dom-if>
-
   </template>
 
   <script>
 
 
-      class CafeApp extends Polymer.Element {
+    class CafeApp extends Polymer.Element {
+      static get is() { return 'cafe-app'; };
 
+      static get properties() {
+        return {
 
-          static get is() { return 'cafe-app'; }
+            userData: {
+                type: Array,
+                value: () => [],
+                notify: true
+            }
 
-          static get properties() {
-              return {
+        };
+      }
 
-                  userData: {
-                      type: Array,
-                      value: () => [],
-                      notify: true
-                  }
+      static get observers() {
+          return ['_onLoginChanged(_loggedIn)'];
+      };
 
+      _onLoginChanged(login) {
+
+        Polymer.RenderStatus.afterNextRender(this, () => {
+
+            if (!login) {
+                this._selected = 'login';
+                this.set('route.path','login');
+            }
+            else{
+                this._selected = '';
+                if(this.route.path==="/login"){
+                    this.set('route.path', '');
+                    this.notifyPath('route.path');
+                    return;
+                }
+                this.set('route.path', this.route.path);
+            }
+
+            this.notifyPath('route.path');
+        });
+
+      }
+
+      _logOut() {
+          localStorage.clear();
+          this._loggedIn = false;
+      }
+
+      _logIn(){
+          this.$.login.url = `${super._getServer()}users/login`;
+
+          this.$.login.body = this.userFormData;
+          this.$.login.generateRequest();
+      }
+
+      _handleUserResponse(data) {
+
+          var response = JSON.parse(data.detail.response);
+          //console.log(event);
+          //console.log(response);
+          //var response = event.detail.response;
+
+          if (response.success) {
+              this.$.generateToken.generateRequest();
+              this.error = '';
+              this.userData = {
+                  username: response.username,
+                  userId: response.userId,
+                  loggedIn: response.success,
+                  fmTokenData: this.fmTokenData
               };
+              this._loggedIn = true;
           }
-
-          static get observers() {
-              return ['_onLoginChanged(_loggedIn)'];
-          };
-
-          ready() {
-            super.ready();
-            this.baseHref = document.querySelector('base').getAttribute('href');
-            Polymer.RenderStatus.afterNextRender(this, () => {
-              window.addEventListener('online', this._networkStatusMessage.bind(this));
-              window.addEventListener('offline', this._networkStatusMessage.bind(this));
-              this._setupDB();
-              setTimeout(() => this.importLazyGroup('overview'), 2000);
-            });
-          }
-
-          _logIn() {
-
-            this._autoLogin = true;
-            // setup sets the _loggedIn flag appropriatelly
-            this._setupDB();
-            
-          }
-
-          _logOut() {
-            this.routeData.id = null;
-            this._autoLogin = this._loggedIn = false;
-            this._dbSetupComplete = false;
-          }
-
-          _onLoginChanged(login) {
-            console.log('login======>'+login);
-            Polymer.RenderStatus.afterNextRender(this, () => {
-              if (!login) {
-                this._setupDB();
-              }
-              if (login !== undefined) {
-                this._selected = login ? 1 : 0;
-                this.set('route.path', (login ? this.baseHref + this._dbId : this.baseHref));
-              }
-            });
-          }
-
-          _setupDB() {
-            if (this._dbSetupComplete === true) {
-              return;
-            }
-
-            var id = this.routeData.id;
-            if (!id && !this._autoLogin) {
+          else{
+              this.error = response.msg;
               this._loggedIn = false;
-              return;
-            }
-            if (id && this._dbLocal && this._dbId !== id) {
-              // User wants to change their ddbb because URL changed
-              this._dbId = this._dbLocal = this._dbRemote
-            } else if (!id && this._dbId) {
-              // Re-use the saved ddbb
-              id = this._dbId;
-            }
-            if (id) {
-              // Check that ddbb still exists in the server
-              this.$.ajax.url = 'https://cafe.com/api/db/' + id;
-              console.log('id========>'+id);
-            } else {
-              // Create a new ddbb in server with new demo data
-              this.$.ajax.url = 'https://cafe.com/api/create';
-            }
+          }
+          //console.log(this.userFormData);
+          // reset form data
+          this.userFormData = {};
+      }
 
-            this._dbSetupComplete = true;
-            this.$.ajax.generateRequest();
-            this.importLazyGroup('overview');
+      _storeTokenData(data){
+          var response = data.detail.response;
+          //console.log(response);
+          if(response){
+              this.fmTokenData = data.detail.response;
+              this.userData.fmTokenData = this.fmTokenData;
+              this.userData.loggedInTime = new Date().getTime();
+              this.notifyPath('userData.fmTokenData');
+          }
+          console.log(this.userData);
+      }
+
+      _computeTokenURL(){
+          return `${super._getServer()}fm/getToken`;
+      }
+
+      constructor() {
+          super();
+          // this.rootPattern = (new URL(this.rootPath)).pathname;
+      }
+
+      _showPage404() {
+          this.page = 'view404';
+      }
+
+      _checkTokenData(data){
+          var response = data.detail.response;
+          if(response){
+              if(response.errorCode === "0"){
+                  this._loggedIn = true;
+              }
+              else{
+                  this._logOut();
+              }
+          }
+          else{
+              this._logOut();
+          }
+      }
+
+      ready(){
+          super.ready();
+
+          if (localStorage.getItem("user") === null || localStorage.getItem("user") === undefined || localStorage.getItem("user").length <= 2) {
+              this._logOut();
+          }
+          else{
+              this.page ='';
+              this.userData = localStorage.getItem("user");
+
+            /*//Token expires in 15 mins and user should log out
+             var now = new Date().getTime();
+             var loggedInTime = JSON.parse(this.userData).loggedInTime;
+             console.log(now - loggedInTime);*/
+              this.$.checkToken.url = `${super._getServer()}fm/checkToken/${JSON.parse(this.userData).fmTokenData.layout}`;
+              this.$.checkToken.headers = {'fm-data-token': JSON.parse(this.userData).fmTokenData.token};
+              this.$.checkToken.generateRequest();
           }
 
-          _handleBackendResponse(evt) {
-            var rsp = evt.detail.response;
-            if (rsp && rsp.backend_db_id) {
-              // ddbb in server is correct
-              this._dbId = rsp.backend_db_id;
-              this._dbLocal = 'db_' + this._dbId;
-              this.set('route.path', this.baseHref + this._dbId);
-              this._dbRemote = rsp.couchdb_db_url;
-              this._loggedIn = true;
-              // ddbb was just created
-              this._showInfo = rsp.new_db;
-            } else {
-              // ddbb does not exist anymore
-              this._dbId = null;
-              this._setupDB();
-            }
-          }
+          this.addEventListener('invalid-token', e => this._logOut());
 
-          _handleBackendError(e, d) {
-            if (this._dbId && this._dbRemote) {
-              // We can work offline and have a local instance of the ddbb.
-              this._dbLocal = 'db_' + this._dbId;
-              this._loggedIn = true;
-            } else {
-              // Network failure and we dont have local any ddbb yet to work offline
-              this._dbId = null;
-              this._networkStatusMessage(null, 'Experiencing some issues, try again in a bit.');
-              this.$.networkStatus.opened = true;
-            }
-          }
+      }
+    }
 
-          // Show a toast with network status. We migh have a paper-badge for this.
-          _networkStatusMessage(e, text) {
-            text = text ? text : navigator.onLine ? 'online' : 'offline';
-            this.$.networkStatus.opened = false;
-            this.$.networkStatus.text = 'Network is ' + text;
-            this.$.networkStatus.opened = true;
-          }
-        }
-
-      window.customElements.define(CafeApp.is, CafeApp);
+  window.customElements.define(CafeApp.is, CafeApp);
 
 
   </script>
