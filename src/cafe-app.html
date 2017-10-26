@@ -36,7 +36,7 @@
             handle-as="json"
             on-response="_handleUserResponse"
     ></iron-ajax>
-
+    
     <iron-pages
             selected="[[_selected]]"
             attr-for-selected="pagename"
@@ -62,7 +62,6 @@
                 value: () => [],
                 notify: true
             }
-
         };
       }
 
@@ -94,58 +93,72 @@
       }
 
       _logOut() {
-          localStorage.clear();
-          this._loggedIn = false;
+        this.routeData.id = null;
+        this._autoLogin = this._loggedIn = false;
+        this._dbSetupComplete = false;
       }
 
-      _logIn(){
-          this.$.login.url = `${super._getServer()}users/login`;
+      _logIn() {
 
-          this.$.login.body = this.userFormData;
-          this.$.login.generateRequest();
+        this._autoLogin = true;
+        // setup sets the _loggedIn flag appropriatelly
+        this._setupDB();
+        
+      }
+
+      _setupDB() {
+
+        var user = {
+          name: 'WellnessXperts',
+          password: 'herbalife7'
+        };
+
+        var pouchOpts = {
+          skip_setup: true
+        };
+
+        var ajaxOpts = {
+          ajax: {
+            headers: {
+              Authorization: 'Basic ' + window.btoa(user.name + ':' + user.password)
+            }
+          }
+        };
+
+        var remoteDatabase = new PouchDB('http://wxsweb.southeastasia.cloudapp.azure.com:80/db/_users', pouchOpts);
+
+        remoteDatabase.login(user.name, user.password, ajaxOpts).then(function() {
+          return remoteDatabase.allDocs();
+        }).then(function(docs) {
+          console.log(docs);
+        }).catch(function(error) {
+          console.error(error);
+        });
+
+        
+        this._dbSetupComplete = true;
+        this.$.login.generateRequest();
+        
       }
 
       _handleUserResponse(data) {
 
           var response = JSON.parse(data.detail.response);
-          //console.log(event);
-          //console.log(response);
-          //var response = event.detail.response;
+          console.log(event);
+          console.log('response=====>',response);
+          var response = event.detail.response;
 
           if (response.success) {
-              this.$.generateToken.generateRequest();
-              this.error = '';
-              this.userData = {
-                  username: response.username,
-                  userId: response.userId,
-                  loggedIn: response.success,
-                  fmTokenData: this.fmTokenData
-              };
+              
               this._loggedIn = true;
           }
           else{
               this.error = response.msg;
               this._loggedIn = false;
           }
-          //console.log(this.userFormData);
+          console.log(this.userFormData);
           // reset form data
           this.userFormData = {};
-      }
-
-      _storeTokenData(data){
-          var response = data.detail.response;
-          //console.log(response);
-          if(response){
-              this.fmTokenData = data.detail.response;
-              this.userData.fmTokenData = this.fmTokenData;
-              this.userData.loggedInTime = new Date().getTime();
-              this.notifyPath('userData.fmTokenData');
-          }
-          console.log(this.userData);
-      }
-
-      _computeTokenURL(){
-          return `${super._getServer()}fm/getToken`;
       }
 
       constructor() {
@@ -155,21 +168,6 @@
 
       _showPage404() {
           this.page = 'view404';
-      }
-
-      _checkTokenData(data){
-          var response = data.detail.response;
-          if(response){
-              if(response.errorCode === "0"){
-                  this._loggedIn = true;
-              }
-              else{
-                  this._logOut();
-              }
-          }
-          else{
-              this._logOut();
-          }
       }
 
       ready(){
@@ -186,9 +184,9 @@
              var now = new Date().getTime();
              var loggedInTime = JSON.parse(this.userData).loggedInTime;
              console.log(now - loggedInTime);*/
-              this.$.checkToken.url = `${super._getServer()}fm/checkToken/${JSON.parse(this.userData).fmTokenData.layout}`;
-              this.$.checkToken.headers = {'fm-data-token': JSON.parse(this.userData).fmTokenData.token};
-              this.$.checkToken.generateRequest();
+            this.$.checkToken.url = `${super._getServer()}fm/checkToken/${JSON.parse(this.userData).fmTokenData.layout}`;
+            this.$.checkToken.headers = {'fm-data-token': JSON.parse(this.userData).fmTokenData.token};
+            this.$.checkToken.generateRequest();
           }
 
           this.addEventListener('invalid-token', e => this._logOut());
