@@ -3,6 +3,7 @@
 <link rel="import" href="../bower_components/app-route/app-route.html">
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
 <link rel="import" href="../bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="../bower_components/polymer/lib/utils/flattened-nodes-observer.html">
 
 <link rel="import" href="../bower_components/iron-form/iron-form.html">
 <link rel="import" href="../bower_components/iron-input/iron-input.html">
@@ -13,11 +14,11 @@
 <link rel="import" href="../bower_components/app-storage/app-localstorage/app-localstorage-document.html">
 
 <link rel="import" href="cafe-dashboard.html">
-
+<link rel="import" href="cafe-node-mixin.html">
 <link rel="import" href="cafe-login.html">
 
 <dom-module id="cafe-app">
-  <link rel="lazy-import" group="dashboard" href="cafe-cashboard.html">
+  <link rel="lazy-import" group="dashboard" href="cafe-dashboard.html">
   <template>
 
     <app-location route="{{route}}"></app-location>
@@ -28,14 +29,14 @@
             data="{{routeData}}"
             tail="{{routeTail}}"></app-route>
 
-    <iron-ajax
+    <!-- <iron-ajax
             id="login"
             method="post"
             content-type="application/json"
             handle-as="text"
             handle-as="json"
             on-response="_handleUserResponse"
-    ></iron-ajax>
+    ></iron-ajax> -->
     
     <iron-pages
             selected="[[_selected]]"
@@ -61,7 +62,9 @@
                 type: Array,
                 value: () => [],
                 notify: true
-            }
+            },
+
+            // _loggedIn: Boolean
         };
       }
 
@@ -70,7 +73,7 @@
       };
 
       _onLoginChanged(login) {
-
+        console.log('_onLoginChanged');
         Polymer.RenderStatus.afterNextRender(this, () => {
 
             if (!login) {
@@ -99,9 +102,7 @@
       }
 
       _logIn() {
-
-        this._autoLogin = true;
-        
+        var self =this;
         var user = {
           name: this.userFormData.username,
           password: this.userFormData.password
@@ -114,7 +115,7 @@
         var remoteDatabase = new PouchDB('http://wxsweb.southeastasia.cloudapp.azure.com:80/db/_users', pouchOpts);
         if (this.userFormData.username === "" ) {
           console.log('Missing Username!')
-        } if (this.userFormData.password === "") {
+        } else if (this.userFormData.password === "") {
           console.log('Missing Password!')
         } else {
           remoteDatabase.login(user.name, user.password, function (err, response) {
@@ -126,9 +127,10 @@
               }
             }
             console.log(response);
+            self._loggedIn = true;
           });
         }
-        this._setupDB();
+        
       }
 
       _setupDB() {      
