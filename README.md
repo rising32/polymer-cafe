@@ -13,14 +13,12 @@ Data is maintained in a local PouchDB database on the client, which can be synch
 ### Install local CouchDB (optional)
 If you want to work on the same data in several browsers, you can install a local CouchDB. Just follow the instructions [here](https://pouchdb.com/guides/setup-couchdb.html).
 
-Once installed, make sure that the `location` attribute is correct on the `<pouch-db>` element in `overview-page.html`. **Note** If you do not use a database to sync with, omit the `location` attribute.
-
 ## Install dependencies
 You need polymer-cli installed to build the app `npm install -g polymer-cli`.
 Install all bower dependencies with `bower install`.
 
 ## Run development server
-`polymer serve` will run the application locally
+`polymer serve --open` will run the application locally
 
 ## Other build targets
 You can build the app with `polymer build`. Other options are listed in the [Polymer CLI](https://www.polymer-project.org/2.0/docs/tools/polymer-cli) documentation.

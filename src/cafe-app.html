@@ -37,7 +37,10 @@
             handle-as="json"
             on-response="_handleUserResponse"
     ></iron-ajax> -->
-    
+
+    <iron-localstorage name="cafe-db-id" value="{{_dbId}}"></iron-localstorage>
+    <iron-localstorage name="cafe-db-remote" value="{{_dbRemote}}"></iron-localstorage>
+    <iron-localstorage name="cafe-autologin" value="{{_autoLogin}}"></iron-localstorage>
     <iron-pages
             selected="[[_selected]]"
             attr-for-selected="pagename"
@@ -103,6 +106,7 @@
 
       _logIn() {
         var self =this;
+        this._autoLogin = true;
         var user = {
           name: this.userFormData.username,
           password: this.userFormData.password
@@ -127,7 +131,7 @@
               }
             }
             console.log(response);
-            self._loggedIn = true;
+            self._autoLogin = self._loggedIn = true;
           });
         }
         
