@@ -101,41 +101,38 @@
       _logIn() {
 
         this._autoLogin = true;
-        // setup sets the _loggedIn flag appropriatelly
-        this._setupDB();
         
-      }
-
-      _setupDB() {
-
         var user = {
-          name: 'WellnessXperts',
-          password: 'herbalife7'
+          name: this.userFormData.username,
+          password: this.userFormData.password
         };
 
         var pouchOpts = {
           skip_setup: true
         };
 
-        var ajaxOpts = {
-          ajax: {
-            headers: {
-              Authorization: 'Basic ' + window.btoa(user.name + ':' + user.password)
-            }
-          }
-        };
-
         var remoteDatabase = new PouchDB('http://wxsweb.southeastasia.cloudapp.azure.com:80/db/_users', pouchOpts);
+        if (this.userFormData.username === "" ) {
+          console.log('Missing Username!')
+        } if (this.userFormData.password === "") {
+          console.log('Missing Password!')
+        } else {
+          remoteDatabase.login(user.name, user.password, function (err, response) {
+            if (err) {
+              if (err.name === 'unauthorized') {
+                console.log('name or password incorrect');
+              } else {
+                console.log('cosmic rays, a meteor, etc.');
+              }
+            }
+            console.log(response);
+          });
+        }
+        this._setupDB();
+      }
 
-        remoteDatabase.login(user.name, user.password, ajaxOpts).then(function() {
-          return remoteDatabase.allDocs();
-        }).then(function(docs) {
-          console.log(docs);
-        }).catch(function(error) {
-          console.error(error);
-        });
+      _setupDB() {      
 
-        
         this._dbSetupComplete = true;
         this.$.login.generateRequest();
         
